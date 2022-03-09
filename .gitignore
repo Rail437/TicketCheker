@@ -1,8 +1,5 @@
 # Project exclude paths
 /out/
 .idea
-**/**/small2.png
-**/**/1.png
-**/**/203205.png
 
 
