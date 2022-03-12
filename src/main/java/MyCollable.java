@@ -1,8 +1,10 @@
 package main.java;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -23,26 +25,38 @@ public class MyCollable implements Callable<Integer> {
         BufferedImage picture = ImageIO.read(img);
         int count = 0;
         for (int i = 0; i < 3; i++) {
-            count += findSubimageInt(ImageIO.read(file.get(i)), picture);
+            count += findSubimageInt(ImageIO.read(file.get(i)), picture, file.get(i).getName());
+            System.out.println(file.get(i).getName() + " проверено. count= " + count);
         }
         return count;
     }
 
-    public static int findSubimageInt(BufferedImage im1, BufferedImage im2) {
+    public static int findSubimageInt(BufferedImage im1, BufferedImage im2, String name) {
         int w1 = im1.getWidth();
         int w2 = im2.getWidth();
         int h1 = im1.getHeight();
         int h2 = im2.getHeight();
         assert (w2 <= w1 && h2 <= h1);
         int count = 0;
+        Color newColor = new Color(0, 255, 0);
+        BufferedImage result = new BufferedImage(im1.getWidth(), im1.getHeight(), im1.getType());
         // brute-force search through whole image (slow...)
         for (int x = 0; x < w1 - w2; x++) {
             for (int y = 0; y < h1 - h2; y++) {
+                result.setRGB(x,y, im1.getRGB(x,y));
                 double comp = compareImages(im1.getSubimage(x, y, w2, h2), im2);
                 if (comp <= 0.029) {
+                    result.setRGB(x, y, newColor.getRGB());
                     count++;
                 }
             }
+        }
+
+        try {
+            File output = new File("copy"+name);
+            ImageIO.write(result, "png", output);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return count;
     }
@@ -64,7 +78,7 @@ public class MyCollable implements Callable<Integer> {
         for (int x = 0; x < w1 - w2; x++) {
             for (int y = 0; y < h1 - h2; y++) {
                 double comp = compareImages(im1.getSubimage(x, y, w2, h2), im2);
-                if (comp <= 0.029) {
+                if (comp <= 0.02) {
                     bestX = x;
                     bestY = y;
                     System.out.println("bestX: " + bestX + " bestY: " + bestY + " comp: " + comp);
@@ -77,19 +91,19 @@ public class MyCollable implements Callable<Integer> {
             }
         }
         // output similarity measure from 0 to 1, with 0 being identical
-        System.out.println(lowestDiff);
         return result;
     }
 
     /**
      * Determines how different two identically sized regions are.
      */
+
     public static double compareImages(BufferedImage im1, BufferedImage im2) {
         assert (im1.getHeight() == im2.getHeight() && im1.getWidth() == im2.getWidth());
         double variation = 0.0;
         for (int x = 0; x < im1.getWidth(); x++) {
             for (int y = 0; y < im1.getHeight(); y++) {
-                variation += compareARGB(im1.getRGB(x, y), im2.getRGB(x, y)) / Math.sqrt(5);
+                variation += compareARGB(im1.getRGB(x, y), im2.getRGB(x, y)) / Math.sqrt(2);
             }
         }
         return variation / (im1.getWidth() * im1.getHeight());
